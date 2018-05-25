@@ -1,0 +1,15 @@
+{
+  "name": "mpcanvas",
+  "version": "1.0.0",
+  "description": "a multiplayer canvas thing",
+  "main": "src/index.js",
+  "author": "slice <ryaneft@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^5.2.0"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^3.0.5",
+    "utf-8-validate": "^4.0.2"
+  }
+}
