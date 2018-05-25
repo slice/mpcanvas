@@ -10,6 +10,7 @@ const trail = { x: 0, y: 0 };
 let down = false;
 
 // drawing
+let history = [];
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -18,6 +19,11 @@ const port = 8080;
 const ws = new WebSocket(`ws://${window.location.hostname}:${port}`);
 
 function draw(before = trail, after = mouse) {
+  ctx.lineWidth = 5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'blue';
+
   ctx.beginPath();
   ctx.moveTo(before.x, before.y);
   ctx.lineTo(after.x, after.y);
@@ -25,9 +31,11 @@ function draw(before = trail, after = mouse) {
   ctx.stroke();
 }
 
-ws.addEventListener('open', () => {
-  console.info('ws: open');
-});
+function drawPens(packets) {
+  for (const { trail: remoteTrail, mouse: remoteMouse } of packets) {
+    draw(remoteTrail, remoteMouse);
+  }
+}
 
 ws.addEventListener('message', ({ data }) => {
   let packet;
@@ -43,19 +51,15 @@ ws.addEventListener('message', ({ data }) => {
     console.log(packet);
     const { d: { trail: remoteTrail, mouse: remoteMouse } } = packet;
     draw(remoteTrail, remoteMouse);
+    history.push(packet.d);
   } else if (packet.t === 'CANVAS') {
-    for (const { trail: remoteTrail, mouse: remoteMouse } of packet.d) {
-      draw(remoteTrail, remoteMouse);
-    }
+    drawPens(packet.d);
+    history = packet.d;
   }
 });
 
 window.addEventListener('DOMContentLoaded', () => {
   console.log('ready!');
-  ctx.lineWidth = 5;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = 'blue';
 
   ws.addEventListener('error', () => {
     status.innerText = 'error';
@@ -106,6 +110,7 @@ function stretch() {
   console.log('size update (%dx%d)', width, height);
   canvas.width = width;
   canvas.height = height;
+  drawPens(history);
 }
 
 stretch();
