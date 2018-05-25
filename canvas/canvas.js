@@ -1,42 +1,56 @@
 'use strict';
 
-console.info('hewwo! owo');
+const dom = {
+  status: {
+    elem: document.querySelector('#status'),
+    show(message = this.elem.innerText) {
+      this.elem.innerText = message;
+      this.elem.style.display = 'inherit';
+    },
+    hide() {
+      this.elem.style.display = 'none';
+    },
+  },
+  canvas: document.querySelector('#canvas'),
+};
 
-const status = document.querySelector('#status');
+const state = {
+  mouse: { x: 0, y: 0 },
+  trail: { x: 0, y: 0 },
+  down: false,
+};
 
-// state
-const mouse = { x: 0, y: 0 };
-const trail = { x: 0, y: 0 };
-let down = false;
-
-// drawing
-let color = '#000000';
-let history = [];
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const pen = {
+  color: '#000000',
+  width: 5,
+};
 
 // net
-const port = 8080;
-const ws = new WebSocket(`ws://${window.location.hostname}:${port}`);
+const ws = new WebSocket(`ws://${window.location.hostname}:8080`);
 
-function draw({ trail: before, mouse: after, color: penColor = color, width: penWidth = 5 }) {
-  ctx.lineWidth = (penWidth < 0 || penWidth > 5) ? 5 : penWidth;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = penColor;
+const canvas = {
+  ctx: dom.canvas.getContext('2d'),
+  history: [], // all pen strokes so far
 
-  ctx.beginPath();
-  ctx.moveTo(before.x, before.y);
-  ctx.lineTo(after.x, after.y);
-  ctx.closePath();
-  ctx.stroke();
-}
+  draw({ trail: before, mouse: after, color = pen.color, width = pen.width }) {
+    this.ctx.lineWidth = (width < 0 || width > 5) ? 5 : width;
+    this.ctx.lineJoin = 'round';
+    this.ctx.lineCap = 'round';
+    this.ctx.strokeStyle = color;
 
-function draws(packets) {
-  for (const packet of packets) {
-    draw(packet);
-  }
-}
+    this.ctx.beginPath();
+    this.ctx.moveTo(before.x, before.y);
+    this.ctx.lineTo(after.x, after.y);
+    this.ctx.closePath();
+    this.ctx.stroke();
+  },
+
+  drawPens(packets) {
+    for (const packet of packets) {
+      this.draw(packet);
+    }
+  },
+};
 
 ws.addEventListener('message', ({ data }) => {
   let packet;
@@ -50,12 +64,12 @@ ws.addEventListener('message', ({ data }) => {
 
   if (packet.t === 'PEN') {
     // draw onto the canvas
-    draw(packet.d);
-    history.push(packet.d);
+    canvas.draw(packet.d);
+    canvas.history.push(packet.d);
   } else if (packet.t === 'CANVAS') {
     // draw the existing canvas from server and boot history
-    draws(packet.d);
-    history = packet.d;
+    canvas.drawPens(packet.d);
+    canvas.history = packet.d;
   }
 });
 
@@ -63,63 +77,64 @@ window.addEventListener('DOMContentLoaded', () => {
   console.log('ready!');
 
   ws.addEventListener('error', () => {
-    status.innerText = 'error';
-    status.style.display = 'inherit';
+    dom.status.show('error');
     console.error('ws: error');
   });
 
   ws.addEventListener('close', () => {
-    status.innerText = 'lost connection';
-    status.style.display = 'inherit';
+    dom.status.show('lost connection');
     console.error('ws: close');
   });
 
   ws.addEventListener('open', () => {
-    status.style.display = 'none';
+    dom.status.hide();
     console.info('ws: open');
   });
 
   document.querySelector('#color-picker').addEventListener('change', (event) => {
-    color = event.target.value;
+    pen.color = event.target.value;
   });
 });
 
-canvas.addEventListener('mousemove', function mousemove(event) {
-  trail.x = mouse.x; trail.y = mouse.y;
+dom.canvas.addEventListener('mousemove', function mousemove(event) {
+  state.trail.x = state.mouse.x;
+  state.trail.y = state.mouse.y;
 
-  mouse.x = event.pageX - this.offsetLeft;
-  mouse.y = event.pageY - this.offsetTop;
+  state.mouse.x = event.pageX - this.offsetLeft;
+  state.mouse.y = event.pageY - this.offsetTop;
 
-  if (down && trail.x !== 0) {
+  if (state.down && state.trail.x !== 0) {
     // local draw (fake packet)
-    draw({
-      trail, mouse,
+    canvas.draw({
+      trail: state.trail, mouse: state.mouse,
     });
 
     // send to server
     ws.send(JSON.stringify({
       t: 'PEN',
       d: {
-        trail, mouse, color,
+        trail: state.trail,
+        mouse: state.mouse,
+        color: pen.color,
       },
     }));
   }
 });
 
-canvas.addEventListener('mousedown', () => {
-  down = true;
+dom.canvas.addEventListener('mousedown', () => {
+  state.down = true;
 });
 
-canvas.addEventListener('mouseup', () => {
-  down = false;
+dom.canvas.addEventListener('mouseup', () => {
+  state.down = false;
 });
 
 function stretch() {
   const { innerWidth: width, innerHeight: height } = window;
   console.log('size update (%dx%d)', width, height);
-  canvas.width = width;
-  canvas.height = height;
-  draws(history);
+  dom.canvas.width = width;
+  dom.canvas.height = height;
+  canvas.drawPens(canvas.history);
 }
 
 stretch();
