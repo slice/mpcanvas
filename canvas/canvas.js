@@ -116,6 +116,7 @@ dom.canvas.addEventListener('mousemove', function mousemove(event) {
         trail: state.trail,
         mouse: state.mouse,
         color: pen.color,
+        width: pen.width,
       },
     }));
   }
