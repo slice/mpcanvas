@@ -10,6 +10,7 @@ const trail = { x: 0, y: 0 };
 let down = false;
 
 // drawing
+let color = '#000000';
 let history = [];
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -18,11 +19,11 @@ const ctx = canvas.getContext('2d');
 const port = 8080;
 const ws = new WebSocket(`ws://${window.location.hostname}:${port}`);
 
-function draw(before = trail, after = mouse) {
-  ctx.lineWidth = 5;
+function draw({ trail: before, mouse: after, color: penColor = color, width: penWidth = 5 }) {
+  ctx.lineWidth = (penWidth < 0 || penWidth > 5) ? 5 : penWidth;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  ctx.strokeStyle = 'blue';
+  ctx.strokeStyle = penColor;
 
   ctx.beginPath();
   ctx.moveTo(before.x, before.y);
@@ -31,9 +32,9 @@ function draw(before = trail, after = mouse) {
   ctx.stroke();
 }
 
-function drawPens(packets) {
-  for (const { trail: remoteTrail, mouse: remoteMouse } of packets) {
-    draw(remoteTrail, remoteMouse);
+function draws(packets) {
+  for (const packet of packets) {
+    draw(packet);
   }
 }
 
@@ -48,12 +49,12 @@ ws.addEventListener('message', ({ data }) => {
   }
 
   if (packet.t === 'PEN') {
-    console.log(packet);
-    const { d: { trail: remoteTrail, mouse: remoteMouse } } = packet;
-    draw(remoteTrail, remoteMouse);
+    // draw onto the canvas
+    draw(packet.d);
     history.push(packet.d);
   } else if (packet.t === 'CANVAS') {
-    drawPens(packet.d);
+    // draw the existing canvas from server and boot history
+    draws(packet.d);
     history = packet.d;
   }
 });
@@ -77,6 +78,10 @@ window.addEventListener('DOMContentLoaded', () => {
     status.style.display = 'none';
     console.info('ws: open');
   });
+
+  document.querySelector('#color-picker').addEventListener('change', (event) => {
+    color = event.target.value;
+  });
 });
 
 canvas.addEventListener('mousemove', function mousemove(event) {
@@ -86,12 +91,16 @@ canvas.addEventListener('mousemove', function mousemove(event) {
   mouse.y = event.pageY - this.offsetTop;
 
   if (down && trail.x !== 0) {
-    draw(trail, mouse);
+    // local draw (fake packet)
+    draw({
+      trail, mouse,
+    });
 
+    // send to server
     ws.send(JSON.stringify({
       t: 'PEN',
       d: {
-        trail, mouse,
+        trail, mouse, color,
       },
     }));
   }
@@ -110,7 +119,7 @@ function stretch() {
   console.log('size update (%dx%d)', width, height);
   canvas.width = width;
   canvas.height = height;
-  drawPens(history);
+  draws(history);
 }
 
 stretch();
