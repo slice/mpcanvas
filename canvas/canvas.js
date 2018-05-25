@@ -2,6 +2,8 @@
 
 console.info('hewwo! owo');
 
+const status = document.querySelector('#status');
+
 // state
 const mouse = { x: 0, y: 0 };
 const trail = { x: 0, y: 0 };
@@ -54,6 +56,23 @@ window.addEventListener('DOMContentLoaded', () => {
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.strokeStyle = 'blue';
+
+  ws.addEventListener('error', () => {
+    status.innerText = 'error';
+    status.style.display = 'inherit';
+    console.error('ws: error');
+  });
+
+  ws.addEventListener('close', () => {
+    status.innerText = 'lost connection';
+    status.style.display = 'inherit';
+    console.error('ws: close');
+  });
+
+  ws.addEventListener('open', () => {
+    status.style.display = 'none';
+    console.info('ws: open');
+  });
 });
 
 canvas.addEventListener('mousemove', function mousemove(event) {
