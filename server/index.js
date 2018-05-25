@@ -10,6 +10,11 @@ const ws = new WebSocket.Server({
 function message(conn, data) {
   let packet;
 
+  if (data.length > 4096) {
+    // don't bother.
+    return;
+  }
+
   try {
     packet = JSON.parse(data);
   } catch (error) {
