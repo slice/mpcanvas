@@ -11,6 +11,15 @@ const ws = new WebSocket.Server({
   port,
 });
 
+function send(socket, packet) {
+  if (socket.readyState !== 1) {
+    console.log('[*] dropping packet for', socket, 'not yet ready');
+    return;
+  }
+
+  socket.send(JSON.stringify(packet));
+}
+
 function message(conn, data) {
   let packet;
 
@@ -32,7 +41,7 @@ function message(conn, data) {
     canvas.push(packet.d);
 
     for (const client of ws.clients) {
-      client.send(JSON.stringify(packet));
+      send(client, packet);
     }
   }
 }
@@ -40,13 +49,13 @@ function message(conn, data) {
 ws.on('connection', (conn) => {
   console.log('[+] connection');
 
-  conn.send(JSON.stringify({
+  send(conn, {
     t: 'CANVAS',
     d: canvas,
-  }));
+  });
 
-  conn.on('close', () => {
-    console.log('[-] connection');
+  conn.on('close', (code, reason) => {
+    console.log('[-] connection (code: %s, reason: %s)', code, reason);
   });
 
   conn.on('message', (data) => {
