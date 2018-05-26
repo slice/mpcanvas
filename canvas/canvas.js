@@ -25,6 +25,14 @@ const state = {
 const pen = {
   color: '#000000',
   width: 5,
+
+  updateWidthPreview() {
+    const preview = $('#pen-preview');
+    const px = `${this.width}px`;
+    preview.style.width = px;
+    preview.style.height = px;
+    $('#pen-value').innerText = px;
+  },
 };
 
 // net
@@ -93,17 +101,32 @@ window.addEventListener('DOMContentLoaded', () => {
     console.info('ws: open');
   });
 
+  window.addEventListener('keydown', ({ which: key }) => {
+    if (key === 67) {
+      $('#color-picker').click();
+      return;
+    }
+
+    if (key !== 219 && key !== 221) {
+      return;
+    }
+    const step = key === 221 ? 1 : -1;
+    pen.width += step;
+
+    pen.width = Math.min(pen.width, 20);
+    pen.width = Math.max(pen.width, 1);
+
+    pen.updateWidthPreview();
+    $('#width-changer').value = pen.width;
+  });
+
   $('#color-picker').addEventListener('change', (event) => {
     pen.color = event.target.value;
   });
 
   $('#width-changer').addEventListener('input', (event) => {
     pen.width = event.target.value;
-    const preview = $('#pen-preview');
-    const px = `${pen.width}px`;
-    preview.style.width = px;
-    preview.style.height = px;
-    $('#pen-value').innerText = px;
+    pen.updateWidthPreview();
   });
 });
 
