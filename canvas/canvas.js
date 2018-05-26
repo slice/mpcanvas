@@ -1,17 +1,19 @@
 'use strict';
 
+const $ = (...args) => document.querySelector(...args);
+
 const dom = {
   status: {
-    elem: document.querySelector('#status'),
+    elem: $('#status'),
     show(message = this.elem.innerText) {
       this.elem.innerText = message;
-      this.elem.style.display = 'inherit';
+      this.elem.style.display = 'flex';
     },
     hide() {
       this.elem.style.display = 'none';
     },
   },
-  canvas: document.querySelector('#canvas'),
+  canvas: $('#canvas'),
 };
 
 const state = {
@@ -33,7 +35,7 @@ const canvas = {
   history: [], // all pen strokes so far
 
   draw({ trail: before, mouse: after, color = pen.color, width = pen.width }) {
-    this.ctx.lineWidth = (width < 0 || width > 5) ? 5 : width;
+    this.ctx.lineWidth = (width < 0 || width > 20) ? 20 : width;
     this.ctx.lineJoin = 'round';
     this.ctx.lineCap = 'round';
     this.ctx.strokeStyle = color;
@@ -91,8 +93,17 @@ window.addEventListener('DOMContentLoaded', () => {
     console.info('ws: open');
   });
 
-  document.querySelector('#color-picker').addEventListener('change', (event) => {
+  $('#color-picker').addEventListener('change', (event) => {
     pen.color = event.target.value;
+  });
+
+  $('#width-changer').addEventListener('input', (event) => {
+    pen.width = event.target.value;
+    const preview = $('#pen-preview');
+    const px = `${pen.width}px`;
+    preview.style.width = px;
+    preview.style.height = px;
+    $('#pen-value').innerText = px;
   });
 });
 

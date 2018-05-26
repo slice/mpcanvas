@@ -20,9 +20,34 @@ html, body {
   border-radius: 0.15rem;
 }
 
-#color-container {
+#settings {
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
   position: absolute;
-  bottom: 0;
-  left: 0;
+  bottom: 1rem;
+  left: 1rem;
   padding: 0.5rem;
+}
+
+#settings label {
+  margin: 0 0.5em 0 1em;
+}
+
+#pen-value {
+  opacity: 0.3;
+  margin-left: 0.5em;
+}
+
+#pen-preview {
+  display: inline-block;
+  background: #000;
+  border-radius: 100%;
+  width: 5px;
+  height: 5px;
+  margin-left: 1em;
+}
+
+.flavor {
+  margin-right: 1em;
 }
