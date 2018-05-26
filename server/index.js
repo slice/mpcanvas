@@ -1,16 +1,20 @@
 'use strict';
 
 const WebSocket = require('ws');
+const {
+  port = 8080,
+  maxPacketLength = 4096,
+} = require('../config.json');
 
 const canvas = [];
 const ws = new WebSocket.Server({
-  port: 8080,
+  port,
 });
 
 function message(conn, data) {
   let packet;
 
-  if (data.length > 4096) {
+  if (data.length > maxPacketLength) {
     // don't bother.
     return;
   }
